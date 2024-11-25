@@ -1,4 +1,6 @@
 # 61% accuracy
+# Adam(lr = 1e-2)
+# batch size = 128
 max_epoch = 50
 
 # Lists to store training and testing losses
