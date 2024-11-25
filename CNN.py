@@ -1,43 +1,50 @@
-class MyModel(nn.Module):
-    def __init__(self, img_size=32, num_class=100):
-        super(MyModel, self).__init__()
+# 61% accuracy
+max_epoch = 50
 
-        self.img_size = img_size
-        self.num_class = num_class
+# Lists to store training and testing losses
+tr_loss_saver = []
+te_loss_saver = []
 
-        # (TODO) Model definition
-        # Define the layers of your model here
-        # Stack multiple convolution layers with pooling and FC layers
-        # You can consider existing CNN models (e.g., VGG, ResNet, DenseNet, ...)
-        # Input: the number of classes (CIFAR-100 has 100 classes)
+# Iterate over each epoch
+for epoch in tqdm(range(max_epoch)):
+    ### Train Phase
 
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1)
-        self.conv3 = nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1)
-        self.conv4 = nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1)
+    # Initialize Loss and Accuracy for training phase
+    train_loss = 0.0
+    train_accu = 0.0
 
-        self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
+    # Iterate over the train_dataloader
+    for idx, sample in enumerate(train_dataloader):
+        # Call the train function to perform training on the current batch
+        curr_loss, num_correct = train(model, optimizer, sample)
 
-        self.relu = nn.ReLU()
+        # Update the total training loss and accuracy
+        train_loss += curr_loss / len(train_dataloader)
+        train_accu += num_correct / len(train_dataset)
 
-        self.fc1 = nn.Linear(512*(self.img_size//(2**4))**2, 512)
-        self.fc2 = nn.Linear(512, 256)
-        self.fc3 = nn.Linear(256, 128)
-        self.fc4 = nn.Linear(128, self.num_class)
-        self.dropout = nn.Dropout(p=0.5)
+    # Save the training loss
+    tr_loss_saver.append(train_loss)
 
-    def forward(self, img):
-        # (TODO) Define forward pass through your model
-        # Input: Images (batch_size * channels * image_size * image_size)
-        # Output: Predicted labels
-        batch_size = img.shape[0]
+    # Save the model state after each epoch
+    torch.save(model.state_dict(), 'recent.pth')
 
-        out = self.relu((self.maxpool(self.conv1(img))))
-        out = self.relu((self.maxpool(self.conv2(out))))
-        out = self.relu((self.maxpool(self.conv3(out))))
-        out = self.relu((self.maxpool(self.conv4(out))))
+    ### Test Phase
 
-        out = out.reshape(batch_size, -1)
+    # Initialize Loss and Accuracy for testing phase
+    test_loss = 0.0
+    test_accu = 0.0
 
-        out = self.fc2(self.relu(self.dropout(self.fc1(out))))
-        return out
+    # Iterate over the test_dataloader
+    for idx, sample in enumerate(test_dataloader):
+        # Call the test function to evaluate the model on the current batch
+        curr_loss, num_correct = test(model, sample)
+
+        # Update the total testing loss and accuracy
+        test_loss += curr_loss / len(test_dataloader)
+        test_accu += num_correct / len(test_dataset)
+
+    # Save the testing loss
+    te_loss_saver.append(test_loss)
+
+    # Print the epoch-wise training and testing statistics
+    print('[EPOCH {}] TR LOSS : {:.03f}, TE LOSS : {:.03f}, TR ACCU: {:.03f}, TE ACCU : {:.03f}'.format(epoch+1, train_loss, test_loss, train_accu, test_accu))
